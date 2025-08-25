@@ -390,6 +390,7 @@ dependencies = [
 [[package]]
 name = "cw-address-like"
 version = "3.0.1"
+source = "git+https://github.com/permissionlessweb/cw-plus-plus#8a4c87ee0ed3124a73443c5ab57f0586e72e714b"
 dependencies = [
  "cosmwasm-std",
 ]
