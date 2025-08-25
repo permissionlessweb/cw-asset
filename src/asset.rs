@@ -139,10 +139,11 @@ impl AssetUnchecked {
     /// consider the first non-numerical character and all that comes after as
     /// the denom, while all that comes before it as the amount. This is the
     /// approach used in the [Steak Hub contract](https://github.com/st4k3h0us3/steak-contracts/blob/v1.0.0/contracts/hub/src/helpers.rs#L48-L68).
+    /// note: a character can take up more than one byte, so they are not interchangeable
     pub fn from_sdk_string(s: &str) -> Result<Self, AssetError> {
-        for (i, c) in s.chars().enumerate() {
+        for (i, c) in s.char_indices() {
             if !c.is_ascii_digit() {
-                let amount = Uint256::from_str(&s[..i]).map_err(|e| AssetError::Std(e))?;
+                let amount = Uint256::from_str(&s[..i]).map_err(AssetError::Std)?;
                 let denom = &s[i..];
                 return Ok(Self::native(denom, amount));
             }
@@ -281,7 +282,7 @@ impl Asset {
                     amount: self.amount,
                     msg,
                 })
-                .map_err(|e| AssetError::Std(e))?,
+                .map_err(AssetError::Std)?,
                 funds: vec![],
             })),
             AssetInfo::Native(_) => Err(AssetError::UnavailableMethodForNative {
@@ -318,7 +319,7 @@ impl Asset {
                     recipient: to.into(),
                     amount: self.amount,
                 })
-                .map_err(|e| AssetError::Std(e))?,
+                .map_err(AssetError::Std)?,
                 funds: vec![],
             })),
         }
@@ -358,7 +359,7 @@ impl Asset {
                     recipient: to.into(),
                     amount: self.amount,
                 })
-                .map_err(|e| AssetError::Std(e))?,
+                .map_err(AssetError::Std)?,
                 funds: vec![],
             })),
             AssetInfo::Native(_) => Err(AssetError::UnavailableMethodForNative {

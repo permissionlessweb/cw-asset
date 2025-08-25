@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use cosmwasm_std::{to_json_binary, Addr, QuerierResult, SystemError, Uint128, Uint256};
+use cosmwasm_std::{to_json_binary, Addr, QuerierResult, SystemError, Uint256};
 use cw20::{BalanceResponse, Cw20QueryMsg};
 
 #[derive(Default)]

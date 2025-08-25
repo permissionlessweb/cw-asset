@@ -159,7 +159,7 @@ impl AssetInfoUnchecked {
                 Ok(AssetInfo::Native(denom.clone()))
             },
             AssetInfoUnchecked::Cw20(contract_addr) => Ok(AssetInfo::Cw20(
-                api.addr_validate(contract_addr).map_err(|e| AssetError::Std(e))?,
+                api.addr_validate(contract_addr).map_err(AssetError::Std)?,
             )),
         }
     }
@@ -198,7 +198,7 @@ impl AssetInfo {
                         address: address.into(),
                         denom: denom.clone(),
                     }))
-                    .map_err(|e| AssetError::Std(e))?;
+                    .map_err(AssetError::Std)?;
                 Ok(response.amount.amount)
             },
             AssetInfo::Cw20(contract_addr) => {
@@ -208,9 +208,9 @@ impl AssetInfo {
                         msg: to_json_binary(&Cw20QueryMsg::Balance {
                             address: address.into(),
                         })
-                        .map_err(|e| AssetError::Std(e))?,
+                        .map_err(AssetError::Std)?,
                     }))
-                    .map_err(|e| AssetError::Std(e))?;
+                    .map_err(AssetError::Std)?;
                 Ok(response.balance)
             },
         }
@@ -284,7 +284,7 @@ impl KeyDeserialize for &AssetInfo {
         let s = String::from_utf8(value)?;
 
         // cast the AssetError to StdError::ParseError
-        AssetInfo::from_str(&s).map_err(|err| StdError::msg(err))
+        AssetInfo::from_str(&s).map_err(StdError::msg)
     }
 }
 
