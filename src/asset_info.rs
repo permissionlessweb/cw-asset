@@ -1,9 +1,9 @@
-use std::{any::type_name, fmt, str::FromStr};
+use std::{fmt, str::FromStr};
 
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
     to_json_binary, Addr, Api, BalanceResponse, BankQuery, QuerierWrapper, QueryRequest, StdError,
-    StdResult, Uint128, WasmQuery,
+    StdResult, Uint256, WasmQuery,
 };
 use cw20::{BalanceResponse as Cw20BalanceResponse, Cw20QueryMsg};
 use cw_address_like::AddressLike;
@@ -158,9 +158,9 @@ impl AssetInfoUnchecked {
                 }
                 Ok(AssetInfo::Native(denom.clone()))
             },
-            AssetInfoUnchecked::Cw20(contract_addr) => {
-                Ok(AssetInfo::Cw20(api.addr_validate(contract_addr)?))
-            },
+            AssetInfoUnchecked::Cw20(contract_addr) => Ok(AssetInfo::Cw20(
+                api.addr_validate(contract_addr).map_err(|e| AssetError::Std(e))?,
+            )),
         }
     }
 }
@@ -178,10 +178,10 @@ impl AssetInfo {
     /// Query an address' balance of the asset
     ///
     /// ```rust
-    /// use cosmwasm_std::{Addr, Deps, Uint128};
+    /// use cosmwasm_std::{Addr, Deps, Uint256};
     /// use cw_asset::{AssetError, AssetInfo};
     ///
-    /// fn query_uusd_balance(deps: Deps, account_addr: &Addr) -> Result<Uint128, AssetError> {
+    /// fn query_uusd_balance(deps: Deps, account_addr: &Addr) -> Result<Uint256, AssetError> {
     ///     let info = AssetInfo::native("uusd");
     ///     info.query_balance(&deps.querier, "account_addr")
     /// }
@@ -190,24 +190,27 @@ impl AssetInfo {
         &self,
         querier: &QuerierWrapper,
         address: T,
-    ) -> Result<Uint128, AssetError> {
+    ) -> Result<Uint256, AssetError> {
         match self {
             AssetInfo::Native(denom) => {
-                let response: BalanceResponse =
-                    querier.query(&QueryRequest::Bank(BankQuery::Balance {
+                let response: BalanceResponse = querier
+                    .query(&QueryRequest::Bank(BankQuery::Balance {
                         address: address.into(),
                         denom: denom.clone(),
-                    }))?;
+                    }))
+                    .map_err(|e| AssetError::Std(e))?;
                 Ok(response.amount.amount)
             },
             AssetInfo::Cw20(contract_addr) => {
-                let response: Cw20BalanceResponse =
-                    querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+                let response: Cw20BalanceResponse = querier
+                    .query(&QueryRequest::Wasm(WasmQuery::Smart {
                         contract_addr: contract_addr.into(),
                         msg: to_json_binary(&Cw20QueryMsg::Balance {
                             address: address.into(),
-                        })?,
-                    }))?;
+                        })
+                        .map_err(|e| AssetError::Std(e))?,
+                    }))
+                    .map_err(|e| AssetError::Std(e))?;
                 Ok(response.balance)
             },
         }
@@ -249,7 +252,7 @@ impl<'a> PrimaryKey<'a> for &AssetInfo {
     type Suffix = String;
     type SuperSuffix = Self;
 
-    fn key(&self) -> Vec<Key> {
+    fn key(&'_ self) -> Vec<Key<'_>> {
         let mut keys = vec![];
         match &self {
             AssetInfo::Cw20(addr) => {
@@ -281,12 +284,12 @@ impl KeyDeserialize for &AssetInfo {
         let s = String::from_utf8(value)?;
 
         // cast the AssetError to StdError::ParseError
-        AssetInfo::from_str(&s).map_err(|err| StdError::parse_err(type_name::<Self::Output>(), err))
+        AssetInfo::from_str(&s).map_err(|err| StdError::msg(err))
     }
 }
 
 impl<'a> Prefixer<'a> for &AssetInfo {
-    fn prefix(&self) -> Vec<Key> {
+    fn prefix(&'_ self) -> Vec<Key<'_>> {
         self.key()
     }
 }
@@ -330,27 +333,30 @@ mod test {
     fn from_string() {
         let s = "";
         assert_eq!(
-            AssetInfoUnchecked::from_str(s),
-            Err(AssetError::InvalidAssetType {
+            AssetInfoUnchecked::from_str(s).unwrap_err().to_string(),
+            AssetError::InvalidAssetType {
                 ty: "".into()
-            }),
+            }
+            .to_string(),
         );
 
         let s = "native:uusd:12345";
         assert_eq!(
-            AssetInfoUnchecked::from_str(s),
-            Err(AssetError::InvalidAssetInfoFormat {
+            AssetInfoUnchecked::from_str(s).unwrap_err().to_string(),
+            AssetError::InvalidAssetInfoFormat {
                 received: s.into(),
                 should_be: "native:{denom}".into(),
-            }),
+            }
+            .to_string(),
         );
 
         let s = "cw721:galactic_punk";
         assert_eq!(
-            AssetInfoUnchecked::from_str(s),
-            Err(AssetError::InvalidAssetType {
+            AssetInfoUnchecked::from_str(s).unwrap_err().to_string(),
+            AssetError::InvalidAssetType {
                 ty: "cw721".into(),
-            })
+            }
+            .to_string()
         );
 
         let s = "native:uusd";
@@ -387,11 +393,12 @@ mod test {
 
         let unchecked = AssetInfoUnchecked::native("uatom");
         assert_eq!(
-            unchecked.check(&api, Some(&["uusd", "uluna", "uosmo"])),
-            Err(AssetError::UnacceptedDenom {
+            unchecked.check(&api, Some(&["uusd", "uluna", "uosmo"])).unwrap_err().to_string(),
+            AssetError::UnacceptedDenom {
                 denom: "uatom".into(),
                 whitelist: "uusd|uluna|uosmo".into(),
-            }),
+            }
+            .to_string()
         );
     }
 
@@ -402,10 +409,11 @@ mod test {
         token_addr = Addr::unchecked(token_addr.into_string().to_uppercase());
 
         let unchecked = AssetInfoUnchecked::cw20(token_addr);
-        assert_eq!(
-            unchecked.check(&api, None).unwrap_err(),
-            StdError::generic_err("Invalid input: address not normalized").into(),
-        );
+        assert!(unchecked
+            .check(&api, None)
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid input: address not normalized"));
     }
 
     #[test]
@@ -416,11 +424,11 @@ mod test {
 
         let info1 = AssetInfo::native("uusd");
         let balance1 = info1.query_balance(&deps.as_ref().querier, "alice").unwrap();
-        assert_eq!(balance1, Uint128::new(12345));
+        assert_eq!(balance1, Uint256::new(12345));
 
         let info2 = AssetInfo::cw20(Addr::unchecked("mock_token"));
         let balance2 = info2.query_balance(&deps.as_ref().querier, "bob").unwrap();
-        assert_eq!(balance2, Uint128::new(67890));
+        assert_eq!(balance2, Uint256::new(67890));
     }
 
     use cosmwasm_std::{Addr, Order};

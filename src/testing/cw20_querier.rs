@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-use cosmwasm_std::{to_json_binary, Addr, QuerierResult, SystemError, Uint128};
+use cosmwasm_std::{to_json_binary, Addr, QuerierResult, SystemError, Uint128, Uint256};
 use cw20::{BalanceResponse, Cw20QueryMsg};
 
 #[derive(Default)]
 pub struct Cw20Querier {
-    balances: HashMap<Addr, HashMap<Addr, Uint128>>,
+    balances: HashMap<Addr, HashMap<Addr, Uint256>>,
 }
 
 impl Cw20Querier {
@@ -58,6 +58,6 @@ impl Cw20Querier {
         let user_addr = Addr::unchecked(user);
 
         let contract_balances = self.balances.entry(contract_addr).or_default();
-        contract_balances.insert(user_addr, Uint128::new(balance));
+        contract_balances.insert(user_addr, Uint256::new(balance));
     }
 }

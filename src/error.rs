@@ -1,7 +1,7 @@
 use cosmwasm_std::{OverflowError, StdError};
 use thiserror::Error;
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug)]
 pub enum AssetError {
     #[error("std error encountered while handling assets: {0}")]
     Std(#[from] StdError),

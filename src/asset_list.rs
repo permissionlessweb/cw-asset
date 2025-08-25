@@ -456,7 +456,7 @@ mod test_helpers {
 mod tests {
     use cosmwasm_std::{
         testing::MockApi, to_json_binary, BankMsg, Coin, CosmosMsg, OverflowError,
-        OverflowOperation, StdError, Uint128, WasmMsg,
+        OverflowOperation, Uint256, WasmMsg,
     };
     use cw20::Cw20ExecuteMsg;
 
@@ -473,26 +473,29 @@ mod tests {
 
         let s = "native:uusd:69420,cw20:mock_token";
         assert_eq!(
-            AssetListUnchecked::from_str(s),
-            Err(AssetError::InvalidAssetFormat {
+            AssetListUnchecked::from_str(s).unwrap_err().to_string(),
+            AssetError::InvalidAssetFormat {
                 received: "cw20:mock_token".into(),
-            }),
+            }
+            .to_string(),
         );
 
         let s = "native:uusd:69420,cw721:galactic_punk:1";
         assert_eq!(
-            AssetListUnchecked::from_str(s),
-            Err(AssetError::InvalidAssetType {
+            AssetListUnchecked::from_str(s).unwrap_err().to_string(),
+            AssetError::InvalidAssetType {
                 ty: "cw721".into(),
-            }),
+            }
+            .to_string(),
         );
 
         let s = "native:uusd:69420,cw20:mock_token:ngmi";
         assert_eq!(
-            AssetListUnchecked::from_str(s),
-            Err(AssetError::InvalidAssetAmount {
+            AssetListUnchecked::from_str(s).unwrap_err().to_string(),
+            AssetError::InvalidAssetAmount {
                 amount: "ngmi".into(),
-            }),
+            }
+            .to_string(),
         );
 
         let s = "native:uusd:69420,cw20:cosmos1c4k24jzduc365kywrsvf5ujz4ya6mwymy8vq4q:88888";
@@ -544,11 +547,12 @@ mod tests {
         assert_eq!(unchecked.check(&api, None).unwrap(), checked);
         assert_eq!(unchecked.check(&api, Some(&["uusd", "uluna"])).unwrap(), checked);
         assert_eq!(
-            unchecked.check(&api, Some(&["uatom", "uosmo", "uscrt"])),
-            Err(AssetError::UnacceptedDenom {
+            unchecked.check(&api, Some(&["uatom", "uosmo", "uscrt"])).unwrap_err().to_string(),
+            AssetError::UnacceptedDenom {
                 denom: "uusd".into(),
                 whitelist: "uatom|uosmo|uscrt".into(),
-            }),
+            }
+            .to_string()
         );
     }
 
@@ -563,10 +567,11 @@ mod tests {
             AssetUnchecked::cw20(token_addr, 88888u128),
         ]);
 
-        assert_eq!(
-            unchecked.check(&api, None).unwrap_err(),
-            StdError::generic_err("Invalid input: address not normalized").into(),
-        );
+        assert!(unchecked
+            .check(&api, None)
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid input: address not normalized"));
     }
 
     #[test]
@@ -600,11 +605,11 @@ mod tests {
 
         list.add(&Asset::new(uluna(), 12345u128)).unwrap();
         let asset = list.find(&uluna()).unwrap();
-        assert_eq!(asset.amount, Uint128::new(12345));
+        assert_eq!(asset.amount, Uint256::new(12345));
 
         list.add(&Asset::new(uusd(), 1u128)).unwrap();
         let asset = list.find(&uusd()).unwrap();
-        assert_eq!(asset.amount, Uint128::new(69421));
+        assert_eq!(asset.amount, Uint256::new(69421));
     }
 
     #[test]
@@ -612,7 +617,7 @@ mod tests {
         let mut list = mock_list();
         list.add_many(&mock_list()).unwrap();
 
-        let expected = mock_list().apply(|a| a.amount *= Uint128::new(2)).clone();
+        let expected = mock_list().apply(|a| a.amount *= Uint256::new(2)).clone();
         assert_eq!(list, expected);
     }
 
@@ -622,7 +627,7 @@ mod tests {
 
         list.deduct(&Asset::new(uusd(), 12345u128)).unwrap();
         let asset = list.find(&uusd()).unwrap();
-        assert_eq!(asset.amount, Uint128::new(57075));
+        assert_eq!(asset.amount, Uint256::new(57075));
 
         list.deduct(&Asset::new(uusd(), 57075u128)).unwrap();
         let asset_option = list.find(&uusd());
@@ -630,18 +635,22 @@ mod tests {
 
         let err = list.deduct(&Asset::new(uusd(), 57075u128));
         assert_eq!(
-            err,
-            Err(AssetError::NotFoundInList {
+            err.unwrap_err().to_string(),
+            AssetError::NotFoundInList {
                 info: "native:uusd".into(),
-            }),
+            }
+            .to_string(),
         );
 
         list.deduct(&Asset::new(mock_token(), 12345u128)).unwrap();
         let asset = list.find(&mock_token()).unwrap();
-        assert_eq!(asset.amount, Uint128::new(76543));
+        assert_eq!(asset.amount, Uint256::new(76543));
 
         let err = list.deduct(&Asset::new(mock_token(), 99999u128));
-        assert_eq!(err, Err(OverflowError::new(OverflowOperation::Sub,).into()),);
+        assert!(err
+            .unwrap_err()
+            .to_string()
+            .contains(&OverflowError::new(OverflowOperation::Sub).to_string()),);
     }
 
     #[test]
@@ -666,7 +675,7 @@ mod tests {
                     contract_addr: String::from("cosmos1c4k24jzduc365kywrsvf5ujz4ya6mwymy8vq4q"),
                     msg: to_json_binary(&Cw20ExecuteMsg::Transfer {
                         recipient: String::from("alice"),
-                        amount: Uint128::new(88888)
+                        amount: Uint256::new(88888)
                     })
                     .unwrap(),
                     funds: vec![]
