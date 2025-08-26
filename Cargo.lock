@@ -464,7 +464,7 @@ dependencies = [
 [[package]]
 name = "cw20"
 version = "3.0.0"
-source = "git+https://github.com/permissionlessweb/cw-plus?branch=bump%2Fv3#91fb2f61ac9352933367b4d4728ea4dafacf941c"
+source = "git+https://github.com/permissionlessweb/cw-plus#c74717433db9fcd86ac408c1b7fbc0c35caefaa3"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
