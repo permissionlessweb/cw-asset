@@ -390,7 +390,6 @@ dependencies = [
 [[package]]
 name = "cw-address-like"
 version = "3.0.1"
-source = "git+https://github.com/permissionlessweb/cw-plus-plus#8a4c87ee0ed3124a73443c5ab57f0586e72e714b"
 dependencies = [
  "cosmwasm-std",
 ]
@@ -451,8 +450,6 @@ dependencies = [
 [[package]]
 name = "cw-utils"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8667e96f2c65cf7f4c6c66bfd6ee46909c40827bc1caea0409234e34f03cf061"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -464,7 +461,6 @@ dependencies = [
 [[package]]
 name = "cw20"
 version = "3.0.0"
-source = "git+https://github.com/permissionlessweb/cw-plus#c74717433db9fcd86ac408c1b7fbc0c35caefaa3"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
