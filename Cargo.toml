@@ -8,11 +8,11 @@ license     = "Apache-2.0"
 repository  = "https://github.com/mars-protocol/cw-asset"
 
 [dependencies]
-cosmwasm-schema = { git = "https://github.com/permissionlessweb/cosmwasm", branch = "mvp" }
-cosmwasm-std = { git = "https://github.com/permissionlessweb/cosmwasm", branch = "mvp" }
-cw-storage-plus = { git = "https://github.com/permissionlessweb/cw-storage-plus", branch = "mvp" }
-cw-address-like = { git = "https://github.com/permissionlessweb/cw-plus-plus", branch = "feat/mvp" }
-cw20 = { git = "https://github.com/permissionlessweb/cw-plus", branch = "main" }
+cosmwasm-schema = { path = "../ZK/cw/zk-cosmwasm/packages/schema" }
+cosmwasm-std = { path = "../ZK/cw/zk-cosmwasm/packages/std" }
+cw-storage-plus = { path = "../ZK/cw/zk-storage-plus" }
+cw-address-like = { path = "../ZK/cw/zk-plus-plus/packages/address-like" }
+cw20 = { path = "../cw-plus/packages/cw20" }
 thiserror       = { version = "1.0.69" }
 
 [dev-dependencies]
